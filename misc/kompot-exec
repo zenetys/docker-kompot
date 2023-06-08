@@ -1,0 +1,3 @@
+#!/bin/bash
+[[ -n $1 ]] || set -- bash
+exec docker exec -it "${CONTAINER_NAME:-kompot}" "$@"
