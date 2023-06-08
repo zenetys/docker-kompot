@@ -1,0 +1,14 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t influxdb -p info)
+exec 2>&- 2> >(exec logger -t influxdb -p err)
+INFLUXD_OPTS=
+INFLUXDB_USER=influxdb
+INFLUXDB_GROUP=influxdb
+MAX_OPEN_FILES=65536
+[[ -r /etc/default/influxdb ]] && source /etc/default/influxdb
+exec chpst \
+        -o "$MAX_OPEN_FILES" \
+        -u $(id -u "$INFLUXDB_USER"):$(id -g "$INFLUXDB_GROUP") \
+    /usr/bin/influxd -config /etc/influxdb/influxdb.conf $INFLUXD_OPTS

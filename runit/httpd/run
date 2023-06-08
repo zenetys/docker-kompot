@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t httpd -p info)
+exec 2>&- 2> >(exec logger -t httpd -p err)
+exec /usr/sbin/httpd -DFOREGROUND

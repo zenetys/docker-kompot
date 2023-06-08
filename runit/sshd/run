@@ -1,0 +1,13 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t sshd -p info)
+exec 2>&- 2> >(exec logger -t sshd -p err)
+OPTIONS=
+[[ -r /etc/sysconfig/sshd ]] && source /etc/sysconfig/sshd
+for i in rsa ecdsa ed25519; do
+    if [[ ! -f /etc/ssh/ssh_host_${i}_key ]]; then
+        /usr/libexec/openssh/sshd-keygen "$i"
+    fi
+done
+exec /usr/sbin/sshd -D

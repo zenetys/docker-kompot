@@ -1,0 +1,12 @@
+#!/bin/bash
+svdir=$(readlink -f "${0%/*}")
+svname=${svdir##*/}
+configcheckcmd=( /usr/sbin/httpd -t )
+
+# If service terminates with an unclean exit code (ie: != 0), but not
+# abnormally (ie != -1), check its configuration, and if it fails
+# stop the service so it does not try to restart indefinitely.
+if (( $1 > 0 )) && ! "${configcheckcmd[@]}" >/dev/null 2>&1; then
+    logger -t "$svname" -p err "Service $svname exited status $1 and configuration is NOT valid, disabling restart"
+    sv stop "$svdir"
+fi

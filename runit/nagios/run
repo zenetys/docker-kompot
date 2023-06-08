@@ -1,0 +1,8 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+# close stdout because it causes some log dups in syslog and
+# we do not want to redirect to another log file either
+exec 1>&- 1>/dev/null
+exec 2>&- 2> >(exec logger -t nagios -p err)
+exec /usr/sbin/nagios /etc/nagios/nagios.cfg

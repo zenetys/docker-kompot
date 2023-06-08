@@ -1,0 +1,8 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t crond -p info)
+exec 2>&- 2> >(exec logger -t crond -p err)
+CRONDARGS=
+[[ -r /etc/sysconfig/crond ]] && source /etc/sysconfig/crond
+exec /usr/sbin/crond -n $CRONDARGS

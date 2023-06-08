@@ -1,0 +1,33 @@
+#!/bin/bash
+cd /
+umask 0027
+unset HOME
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t grafana -p info)
+exec 2>&- 2> >(exec logger -t grafana -p err)
+set -a
+GRAFANA_USER=grafana
+GRAFANA_GROUP=grafana
+GRAFANA_HOME=/usr/share/grafana
+LOG_DIR=/var/log/grafana
+DATA_DIR=/var/lib/grafana
+MAX_OPEN_FILES=10000
+CONF_FILE=/etc/grafana/grafana.ini
+RESTART_ON_UPGRADE=true
+PLUGINS_DIR=/var/lib/grafana/plugins
+PROVISIONING_CFG_DIR=/etc/grafana/provisioning
+PID_FILE_DIR=/var/run/grafana
+[[ -r /etc/sysconfig/grafana-server ]] && source /etc/sysconfig/grafana-server
+set +a
+mkdir -p "$PID_FILE_DIR"
+chown "$GRAFANA_USER:$GRAFANA_GROUP" "$PID_FILE_DIR"
+cd "$GRAFANA_HOME"
+exec chpst -o "$MAX_OPEN_FILES" -u $(id -u "$GRAFANA_USER"):$(id -g "$GRAFANA_GROUP") \
+    /usr/share/grafana/bin/grafana server \
+        --config="$CONF_FILE" \
+        --pidfile="$PID_FILE_DIR/grafana-server.pid" \
+        --packaging=rpm \
+        cfg:default.paths.logs="$LOG_DIR" \
+        cfg:default.paths.data="$DATA_DIR" \
+        cfg:default.paths.plugins="$PLUGINS_DIR" \
+        cfg:default.paths.provisioning="$PROVISIONING_CFG_DIR"

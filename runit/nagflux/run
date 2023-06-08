@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t nagflux -p info)
+exec 2>&- 2> >(exec logger -t nagflux -p err)
+exec /usr/sbin/nagflux -configPath /etc/nagflux/config.gcfg

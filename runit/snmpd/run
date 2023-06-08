@@ -1,0 +1,8 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1>/dev/null
+exec 2>&- 2>/dev/null
+OPTIONS="-LS0-6d"
+[[ -r /etc/sysconfig/snmpd ]] && source /etc/sysconfig/snmpd
+exec /usr/sbin/snmpd $OPTIONS -f
