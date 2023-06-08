@@ -1,0 +1,45 @@
+#!/bin/bash
+
+LOGPREFIX="${0##*/}${CONTAINER_NAME:+: $CONTAINER_NAME}"
+function info() { echo "INFO: $LOGPREFIX: $*"; }
+function fatal() { echo "FATAL: $LOGPREFIX: $*" >&2; exit 1; }
+
+function on_signal() {
+    info "Caught signal $1"
+    [[ -n $DID ]] && is_alive "$DID" || fatal 'Container not running, exit failure'
+    systemd-notify WATCHDOG_USEC=0
+    case "$1" in
+        # may have already died since is_alive, so quiet
+        ABRT) info 'Send docker kill'; docker kill "$DID" 2>/dev/null ;;
+        TERM) info 'Send docker stop'; docker stop "$DID" 2>/dev/null ;;
+    esac
+}
+
+function is_alive() {
+    local lookup_did=$(docker ps -f "ID=$1" --format '{{.ID}}' --no-trunc)
+    [[ "$lookup_did" == "$1" ]]
+}
+
+trap 'on_signal ABRT' ABRT
+trap 'on_signal TERM' TERM
+
+SECONDS=$(date +%s) || fatal 'Failed to get current time'
+
+DID=$(docker run -d --rm --log-driver journald --log-opt tag='{{.Name}}/{{.ID}}' "$@")
+[[ $? == 0 && -n $DID ]] || fatal 'Docker run failed'
+LOGPREFIX="${0##*/}: ${CONTAINER_NAME:+$CONTAINER_NAME/}${DID:0:12}"
+info 'Notify ready'
+systemd-notify --ready
+
+WATCHDOG_SLEEP_SEC=$(( WATCHDOG_USEC / 1000000 / 2 ))
+(( WATCHDOG_SLEEP_SEC <= 0 )) && WATCHDOG_SLEEP_SEC=3
+info "Watchdog sleep time is ${WATCHDOG_SLEEP_SEC}s"
+while is_alive "$DID"; do
+    last_alive=$SECONDS
+    systemd-notify WATCHDOG=1
+    sleep "$WATCHDOG_SLEEP_SEC" & wait $! 2>/dev/null
+done
+
+retval=$(docker events -f "container=$DID" -f event=die --since $((last_alive-1)) \
+    --until $((SECONDS+1)) --format '{{.Actor.Attributes.exitCode}}' 2>/dev/null |tail -n 1)
+exit ${retval:-0}

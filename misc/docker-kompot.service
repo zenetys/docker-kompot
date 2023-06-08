@@ -1,0 +1,48 @@
+[Unit]
+Description=Kompot docker app
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=notify
+SyslogIdentifier=docker-kompot
+
+Environment=CONTAINER_NAME=kompot
+Environment=CONTAINER_IMAGE=zenetys/kompot
+Environment=VOLUME_ETC_KOMPOT=/app/kompot/etc
+Environment=VOLUME_VAR_LIB_KOMPOT=/app/kompot/data
+Environment=VOLUME_VAR_LOG=/app/kompot/log
+Environment=PUBLISH_HTTPD_PORT=0.0.0.0:8083
+Environment=PUBLISH_SSHD_PORT=0.0.0.0:2222
+Environment=PUBLISH_RSYSLOG_UDP_PORT=0.0.0.0:5514
+Environment=PUBLISH_RSYSLOG_TCP_PORT=0.0.0.0:5514
+Environment=PUBLISH_SNMPTRAPD_PORT=0.0.0.0:1162
+EnvironmentFile=-/etc/sysconfig/docker-kompot
+
+# docker-run-sd executes docker run with -d and --rm
+# first, do not override those two
+ExecStart=docker-run-sd \
+    --name ${CONTAINER_NAME} \
+    --hostname ${CONTAINER_NAME} \
+    --tmpfs /run \
+    --tmpfs /tmp \
+    --volume ${VOLUME_ETC_KOMPOT}:/etc/kompot \
+    --volume ${VOLUME_VAR_LIB_KOMPOT}:/var/lib/kompot \
+    --volume ${VOLUME_VAR_LOG}:/var/log \
+    --publish ${PUBLISH_HTTPD_PORT}:80/tcp \
+    --publish ${PUBLISH_SSHD_PORT}:22/tcp \
+    --publish ${PUBLISH_RSYSLOG_UDP_PORT}:514/udp \
+    --publish ${PUBLISH_RSYSLOG_TCP_PORT}:514/tcp \
+    --publish ${PUBLISH_SNMPTRAPD_PORT}:162/udp \
+    ${CONTAINER_IMAGE}
+
+# docker pull the image before, as it may take time
+TimeoutStartSec=5
+TimeoutStopSec=30
+TimeoutStopFailureMode=abort
+WatchdogSec=6
+SuccessExitStatus=0 143
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
