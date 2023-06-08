@@ -1,0 +1,83 @@
+#!/bin/bash
+
+function warning() { echo "WARNING: kompot: $*" >&2; }
+function fatal() { echo "FATAL: kompot: $*" >&2; exit 2; }
+
+# command line to exec if any
+if (( $# > 0 )); then
+    warning "Exec mode, environment is NOT setup!" >&2
+    exec "$@"
+fi
+
+function mount_type() {
+    mount |sed -nre "s,^([^ ]+) on $1 .*,\1,p";
+}
+
+function check_runsv() {
+    local i
+    for i in /etc/sv/*; do
+        pgrep -f "^runsv ${i##*/}$" >/dev/null || return 1
+    done
+    return 0
+}
+
+function wait_runsv() {
+    local wait=0
+    while (( wait++ < 5 )); do
+        check_runsv && return 0
+        sleep 1
+    done
+    return 1
+}
+
+ping_group_range=$(< /proc/sys/net/ipv4/ping_group_range)
+[[ -n $ping_group_range && $ping_group_range != $'1\t0' ]] ||
+    fatal "Run container with --sysctl net.ipv4.ping_group_range='0 2147483647'"
+
+[[ $(mount_type /tmp) == tmpfs ]] || fatal 'Run container with --tmpfs /tmp'
+[[ $(mount_type /run) == tmpfs ]] || fatal 'Run container with --tmpfs /run'
+
+# try to detect if clone3 syscall is available
+check_clone3=$(curl -m 0.1 -fsS localhost 2>&1)
+[[ $? != 0 && $check_clone3 == *getaddrinfo* ]] &&
+    fatal 'Update docker or at worst run container with --security-opt seccomp=unconfined'
+
+systemd-tmpfiles --prefix=/dev --create --boot
+systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev
+
+ulimit -Sn 1024 # soft nofile
+ulimit -Hn 524288 # hard nofile
+
+rm -f /run/nologin
+
+env=( PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin )
+[[ -t 1 ]] && env+=( "TERM=${TERM:-linux}" )
+for i in $(env -0 |awk -v RS='\0' -v FS='=' '$1 ~ /^KOMPOT_/ {print $1}'); do
+    env+=( "$i=${!i}" )
+done
+
+# registrer services without starting them, in case
+# they are needed in setup tasks
+for i in /etc/sv/*; do touch "$i/down"; done
+function on_sigterm() {
+    env -i "${env[@]}" /opt/kompot/bin/init-kompot --all stop
+    pkill -HUP runsvdir
+}
+trap on_sigterm TERM INT
+env -i "${env[@]}" runsvdir -P /etc/sv &
+wait_runsv || fatal 'runsv check did not pass, abort!'
+for i in /etc/sv/*; do rm -f "$i/down"; done
+
+# setup files
+env -i "${env[@]}" /opt/kompot/bin/setup-kompot ||
+    fatal 'Setup script failed'
+
+# custom hook
+if [[ -f /etc/kompot/docker/entrypoint.local ]]; then
+    source /etc/kompot/docker/entrypoint.local ||
+        fatal 'Failed to source entrypoint.local'
+fi
+
+# start services
+env -i "${env[@]}" /opt/kompot/bin/init-kompot start
+wait
