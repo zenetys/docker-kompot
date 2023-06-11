@@ -1,3 +1,10 @@
 #!/bin/bash
+PROGNAME=${0##*/}
+CONTAINER_NAME=${CONTAINER_NAME:-kompot}
+CONFIG=${CONFIG:-~/.$PROGNAME.$CONTAINER_NAME}
+[[ -r $CONFIG ]] && source "$CONFIG"
+opts=()
+[[ -t 0 ]] && opts+=( -i )
+[[ -t 1 ]] && opts+=( -t )
 [[ -n $1 ]] || set -- bash
-exec docker exec -it "${CONTAINER_NAME:-kompot}" "$@"
+exec docker exec "${opts[@]}" "$CONTAINER_NAME" "$@"
