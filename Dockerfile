@@ -51,7 +51,7 @@ RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
     useradd -u 995 -r -g grafana -d /usr/share/grafana -s /sbin/nologin grafana; \
         :; \
     _dnf() { dnf --setopt install_weak_deps=False -y "$@"; }; \
-    _dnf install kompot{,-setup}${KOMPOT_VERSION:+-$KOMPOT_VERSION}; \
+    KOMPOT_SETUP=0 _dnf install kompot{,-setup}${KOMPOT_VERSION:+-$KOMPOT_VERSION}; \
     #KOMPOT_SETUP=0 _dnf install /tmp/build-resources/kompot{,-setup}-latest.rpm; \
         :;
 
