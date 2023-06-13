@@ -6,4 +6,9 @@ exec 1>&- 1>/dev/null
 exec 2>&- 2>/dev/null
 SYSLOGD_OPTIONS=
 [[ -r /etc/sysconfig/rsyslog ]] && source /etc/sysconfig/rsyslog
+if [[ -r /etc/kompot/rsyslog/rsyslog.env ]]; then
+    set -a
+    source /etc/kompot/rsyslog/rsyslog.env
+    set +a
+fi
 exec chpst -o 16384 /usr/sbin/rsyslogd -n $SYSLOGD_OPTIONS
