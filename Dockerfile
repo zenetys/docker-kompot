@@ -46,6 +46,8 @@ RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
     useradd -u 994 -r -g influxdb -d /var/lib/influxdb -s /bin/false influxdb; \
     groupadd -g 995 -r grafana; \
     useradd -u 995 -r -g grafana -d /usr/share/grafana -s /sbin/nologin grafana; \
+    groupadd -g 996 -r centreon; \
+    useradd -u 996 -r -g centreon -d /var/log/centreon -s /sbin/nologin centreon; \
         :; \
     _dnf() { dnf --setopt install_weak_deps=False -y "$@"; }; \
     KOMPOT_SETUP=0 _dnf install kompot{,-setup}${KOMPOT_VERSION:+-$KOMPOT_VERSION}; \
