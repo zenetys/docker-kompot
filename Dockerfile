@@ -3,17 +3,14 @@ ARG KOMPOT_VERSION=
 FROM rockylinux:9 as base-os
 SHELL [ "bash", "-c" ]
 
-COPY ./repos/ /tmp/build-resources/repos/
 COPY ./runit/ /tmp/build-resources/runit/
 
 RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
     set -exo pipefail; \
     echo keepcache=1 >> /etc/dnf/dnf.conf; \
         :; \
-    mv /tmp/build-resources/repos/influxdata.repo /etc/yum.repos.d/; \
-    mv /tmp/build-resources/repos/grafana.repo /etc/yum.repos.d/; \
-    curl -L -o /etc/yum.repos.d/zenetys-latest.repo \
-        https://packages.zenetys.com/latest/redhat/zenetys-latest.repo; \
+    curl -L -o /etc/yum.repos.d/kompot.repo \
+        https://packages.zenetys.com/projects/kompot/latest/redhat/kompot.repo; \
     awk '/^\[/ {inside=$1} inside=="[crb]"&&/enabled/{print "enabled=1"; next}{print}' \
         /etc/yum.repos.d/rocky.repo > /etc/yum.repos.d/rocky.repo.new; \
     mv /etc/yum.repos.d/rocky.repo{.new,}; \
