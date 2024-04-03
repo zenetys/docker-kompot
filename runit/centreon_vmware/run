@@ -1,0 +1,11 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t centreon_vmware -p info)
+exec 2>&- 2> >(exec logger -t centreon_vmware -p err)
+CENTREON_USER=centreon
+CENTREON_GROUP=centreon
+OPTIONS='--logfile=/var/log/centreon/centreon_vmware.log --severity=error'
+[[ -r /etc/sysconfig/centreon_vmware ]] && source /etc/sysconfig/centreon_vmware
+exec chpst -u $(id -u "$CENTREON_USER"):$(id -g "$CENTREON_GROUP") \
+    /opt/centreon-vmware/bin/centreon_vmware.pl $OPTIONS
