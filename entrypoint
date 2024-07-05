@@ -31,7 +31,8 @@ function wait_runsv() {
 }
 
 ping_group_range=$(< /proc/sys/net/ipv4/ping_group_range)
-[[ -n $ping_group_range && $ping_group_range != $'1\t0' ]] ||
+re_bad_ping_group_range=$'^[01]\t0$'
+[[ -z $ping_group_range || $ping_group_range =~ $re_bad_ping_group_range ]] &&
     fatal "Run container with --sysctl net.ipv4.ping_group_range='0 2147483647'"
 
 [[ $(mount_type /tmp) == tmpfs ]] || fatal 'Run container with --tmpfs /tmp'
