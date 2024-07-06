@@ -1,0 +1,33 @@
+[Unit]
+Description=Kompot container
+After=local-fs.target
+After=network.target
+
+[Container]
+Image=docker.io/zenetys/kompot
+ContainerName=kompot
+HostName=kompot
+Tmpfs=/run
+Tmpfs=/tmp
+LogDriver=journald
+Sysctl=net.ipv4.ping_group_range="0 2147483647"
+AddCapability=CAP_AUDIT_WRITE
+Volume=/app/kompot/etc:/etc/kompot
+Volume=/app/kompot/data:/var/lib/kompot
+Volume=/app/kompot/log:/var/log
+PublishPort=0.0.0.0:8083:80/tcp
+PublishPort=0.0.0.0:8084:443/tcp
+PublishPort=0.0.0.0:2222:22/tcp
+PublishPort=0.0.0.0:5514:514/udp
+PublishPort=0.0.0.0:5514:514/tcp
+PublishPort=0.0.0.0:1162:162/udp
+Environment=KOMPOT_TZ=Europe/Paris
+
+[Service]
+ExecStartPre=/bin/sh -ec 'mkdir -p -m 0700 /app/kompot; mkdir -p -m 0755 /app/kompot/{etc,data,log}'
+SuccessExitStatus=143
+# mostly for initial run
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target
