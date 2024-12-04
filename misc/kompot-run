@@ -4,6 +4,13 @@ PROGNAME=${0##*/}
 
 CONTAINER_NAME=${CONTAINER_NAME:-kompot}
 CONTAINER_IMAGE=${CONTAINER_IMAGE:-zenetys/kompot}
+# set empty to prevent --rm
+CONTAINER_RM=${CONTAINER_RM-1}
+CONTAINER_DETACH=${CONTAINER_DETACH-}
+CONTAINER_NETWORK=${CONTAINER_NETWORK-}
+CONTAINER_IP=${CONTAINER_IP-}
+# --restart on|on-failure[:max-retries]|always|unless-stopped
+CONTAINER_RESTART=${CONTAINER_RESTART-}
 VOLUME_ETC_KOMPOT=${VOLUME_ETC_KOMPOT-~/app/kompot/etc}
 VOLUME_VAR_LIB_KOMPOT=${VOLUME_VAR_LIB_KOMPOT-~/app/kompot/data}
 VOLUME_VAR_LOG=${VOLUME_VAR_LOG-~/app/kompot/log}
@@ -27,7 +34,11 @@ while (( $# > 0 )); do
 done
 
 exec docker run \
-    --rm \
+    ${CONTAINER_RM:+--rm} \
+    ${CONTAINER_DETACH:+--detach} \
+    ${CONTAINER_NETWORK:+--network "$CONTAINER_NETWORK"} \
+    ${CONTAINER_IP:+--ip "$CONTAINER_IP"} \
+    ${CONTAINER_RESTART:+--restart "$CONTAINER_RESTART"} \
     --name "$CONTAINER_NAME" \
     --hostname "$CONTAINER_NAME" \
     --tmpfs /run \
