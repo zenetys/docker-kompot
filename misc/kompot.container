@@ -28,6 +28,8 @@ ExecStartPre=/bin/sh -ec 'mkdir -p -m 0700 /app/kompot; mkdir -p -m 0755 /app/ko
 SuccessExitStatus=0
 # mostly for initial run
 TimeoutStartSec=180
+# services may need time to stop properly, pervent kill after default 10s
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
