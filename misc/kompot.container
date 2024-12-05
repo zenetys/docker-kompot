@@ -25,7 +25,7 @@ Environment=KOMPOT_TZ=Europe/Paris
 
 [Service]
 ExecStartPre=/bin/sh -ec 'mkdir -p -m 0700 /app/kompot; mkdir -p -m 0755 /app/kompot/{etc,data,log}'
-SuccessExitStatus=143
+SuccessExitStatus=0
 # mostly for initial run
 TimeoutStartSec=180
 

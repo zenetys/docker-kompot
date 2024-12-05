@@ -1,5 +1,6 @@
 #!/bin/bash
 
+function info() { echo "INFO: kompot: $*" >&2; }
 function warning() { echo "WARNING: kompot: $*" >&2; }
 function fatal() { echo "FATAL: kompot: $*" >&2; exit 2; }
 
@@ -21,10 +22,16 @@ function check_runsv() {
     return 0
 }
 
-function wait_runsv() {
-    local wait=0
-    while (( wait++ < 5 )); do
-        check_runsv && return 0
+# wait_until [-r] max_wait command...
+# Wait until command return 0, or non-zero with -r
+function wait_until() {
+    local wait=0 reverse= max_wait retval
+    [[ $1 == -r ]] && { reverse=1; shift; }
+    max_wait=$1; shift
+    while (( wait++ < max_wait )); do
+        "$@"; retval=$?
+        [[ -n $reverse ]] && retval=$((retval==0?1:0))
+        [[ $retval == 0 ]] && return 0
         sleep 1
     done
     return 1
@@ -57,16 +64,15 @@ for i in $(env -0 |awk -v RS='\0' -v FS='=' '$1 ~ /^KOMPOT_/ {print $1}'); do
     env+=( "$i=${!i}" )
 done
 
-# registrer services without starting them, in case
-# they are needed in setup tasks
+# Registrer services without starting them, in case they are needed in
+# setup tasks. For this reason, runsvdir must be started in background.
+# We want both SIGTERM (eg. docker stop) and SIGINT (eg. Ctrl+C) to stop
+# the services gracefully.
 for i in /etc/sv/*; do touch "$i/down"; done
-function on_sigterm() {
-    env -i "${env[@]}" /opt/kompot/bin/init-kompot --all stop
-    pkill -HUP runsvdir
-}
-trap on_sigterm TERM INT
+trap 'info "Caught SIGTERM"' TERM
+trap 'info "Caught SIGINT"' INT
 env -i "${env[@]}" runsvdir -P /etc/sv &
-wait_runsv || fatal 'runsv check did not pass, abort!'
+wait_until 5 check_runsv || fatal 'runsv check did not pass, abort!'
 for i in /etc/sv/*; do rm -f "$i/down"; done
 
 # setup files
@@ -79,6 +85,18 @@ if [[ -f /etc/kompot/docker/entrypoint.local ]]; then
         fatal 'Failed to source entrypoint.local'
 fi
 
-# start services
+info 'Starting services...'
 env -i "${env[@]}" /opt/kompot/bin/init-kompot start
+# Because they are trapped, SIGTERM and SIGINT will cause wait to return
+# immediately after execution of the trap handler with an exit status of
+# 128 + signum. Thus it is not always runsvdir status.
 wait
+trap - TERM INT
+
+info "Stopping services..."
+env -i "${env[@]}" /opt/kompot/bin/init-kompot --all stop
+status=$?
+wait_until -r 5 pkill -HUP -P "$$" runsvdir
+# if any process remains, terminate them
+wait_until -r 5 pkill -TERM -P "$$" || status=1
+exit "$status"
