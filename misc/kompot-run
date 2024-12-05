@@ -2,7 +2,15 @@
 
 PROGNAME=${0##*/}
 
-CONTAINER_NAME=${CONTAINER_NAME:-kompot}
+function fatal() { echo "FATAL: $PROGNAME: $*" >&2; exit 2; }
+
+if [[ -L $0 && $PROGNAME == *-run ]]; then
+    default_ct_name=${PROGNAME%-run}
+else
+    default_ct_name=kompot
+fi
+
+CONTAINER_NAME=${CONTAINER_NAME:-$default_ct_name}
 CONTAINER_IMAGE=${CONTAINER_IMAGE:-zenetys/kompot}
 # set empty to prevent --rm
 CONTAINER_RM=${CONTAINER_RM-1}
@@ -11,9 +19,9 @@ CONTAINER_NETWORK=${CONTAINER_NETWORK-}
 CONTAINER_IP=${CONTAINER_IP-}
 # --restart on|on-failure[:max-retries]|always|unless-stopped
 CONTAINER_RESTART=${CONTAINER_RESTART-}
-VOLUME_ETC_KOMPOT=${VOLUME_ETC_KOMPOT-~/app/kompot/etc}
-VOLUME_VAR_LIB_KOMPOT=${VOLUME_VAR_LIB_KOMPOT-~/app/kompot/data}
-VOLUME_VAR_LOG=${VOLUME_VAR_LOG-~/app/kompot/log}
+VOLUME_ETC_KOMPOT=${VOLUME_ETC_KOMPOT-~/"app/$CONTAINER_NAME/etc"}
+VOLUME_VAR_LIB_KOMPOT=${VOLUME_VAR_LIB_KOMPOT-~/"app/$CONTAINER_NAME/data"}
+VOLUME_VAR_LOG=${VOLUME_VAR_LOG-~/"app/$CONTAINER_NAME/log"}
 PUBLISH_HTTPD_PORT=${PUBLISH_HTTPD_PORT-0.0.0.0:8083}
 PUBLISH_HTTPD_TLS_PORT=${PUBLISH_HTTPD_TLS_PORT-}
 PUBLISH_SSHD_PORT=${PUBLISH_SSHD_PORT-0.0.0.0:2222}
@@ -22,8 +30,15 @@ PUBLISH_RSYSLOG_TCP_PORT=${PUBLISH_RSYSLOG_TCP_PORT-0.0.0.0:5514}
 PUBLISH_SNMPTRAPD_PORT=${PUBLISH_SNMPTRAPD_PORT-0.0.0.0:1162}
 
 DOCKER_RUN_OPTS=()
-CONFIG=${CONFIG:-~/.$PROGNAME.$CONTAINER_NAME}
-[[ -r $CONFIG ]] && source "$CONFIG"
+
+config=$CONFIG
+[[ -z $config ]] && config=(
+    ~/.config/"$PROGNAME.$CONTAINER_NAME"
+    ~/.config/"$PROGNAME"
+)
+for c in "${config[@]}"; do
+    [[ -r $c ]] && { source "$c"; break; }
+done
 
 while (( $# > 0 )); do
     case "$1" in
@@ -32,6 +47,9 @@ while (( $# > 0 )); do
     esac
     shift
 done
+
+docker ps -a --format '{{.Names}}' |grep -qFx "$CONTAINER_NAME"
+(( $? == 0 )) && fatal "Container $CONTAINER_NAME already exists"
 
 exec docker run \
     ${CONTAINER_RM:+--rm} \
