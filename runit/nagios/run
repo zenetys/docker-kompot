@@ -1,8 +1,15 @@
 #!/bin/bash
 cd /
 exec 0>&- 0</dev/null
-# close stdout because it causes some log dups in syslog and
-# we do not want to redirect to another log file either
-exec 1>&- 1>/dev/null
+exec 1>&- 1> >(exec logger -t nagios -p info)
+pid_stdout_redirect=$!
 exec 2>&- 2> >(exec logger -t nagios -p err)
+/usr/sbin/nagios -v /etc/nagios/nagios.cfg || exit 1
+# Close stdout because it causes some log dups in syslog with
+# use_syslog=1 in nagios.cfg. Those dups do not happen with
+# systemd mode forking and nagios -d because it must close stdout
+# in daemon mode
+exec 1>&- 1>/dev/null
+kill -0 "$pid_stdout_redirect" && kill "$pid_stdout_redirect"
+wait "$pid_stdout_redirect"
 exec /usr/sbin/nagios /etc/nagios/nagios.cfg
