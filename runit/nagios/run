@@ -12,4 +12,5 @@ exec 2>&- 2> >(exec logger -t nagios -p err)
 exec 1>&- 1>/dev/null
 kill -0 "$pid_stdout_redirect" && kill "$pid_stdout_redirect"
 wait "$pid_stdout_redirect"
+export MIBS= MIBDIRS=
 exec /usr/sbin/nagios /etc/nagios/nagios.cfg
