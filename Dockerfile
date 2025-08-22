@@ -21,7 +21,7 @@ RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
     _dnf install epel-release; \
     _dnf update; \
     _dnf module enable nodejs:18; \
-    _dnf install busybox; \
+    _dnf install busybox puppeteer; \
         :; \
     for i in chpst runsv runsvdir sv svc svlogd svok; do \
         ln -s /usr/sbin/busybox "/usr/local/bin/$i"; \
