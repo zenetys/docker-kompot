@@ -15,6 +15,8 @@ RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
     awk '/^\[/ {inside=$1} inside=="[crb]"&&/enabled/{print "enabled=1"; next}{print}' \
         /etc/yum.repos.d/rocky.repo > /etc/yum.repos.d/rocky.repo.new; \
     mv /etc/yum.repos.d/rocky.repo{.new,}; \
+    rpm --import https://packages.zenetys.com/projects/kompot/latest/redhat/9/RPMS/x86_64/external/grafana.key; \
+    rpm --import https://packages.zenetys.com/projects/kompot/latest/redhat/9/RPMS/x86_64/external/influxdata-archive.key; \
         :; \
     _dnf() { dnf --setopt install_weak_deps=False -y "$@"; }; \
     _dnf clean expire-cache; \
