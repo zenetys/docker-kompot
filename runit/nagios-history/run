@@ -1,0 +1,16 @@
+#!/bin/bash
+cd /
+exec 0>&- 0</dev/null
+exec 1>&- 1> >(exec logger -t nagios-history -p info)
+exec 2>&- 2> >(exec logger -t nagios-history -p err)
+ZTAIL_INTERVAL=5
+ZTAIL_STATE_FILE=/var/lib/kompot/nagios/nagios-history.ztail
+NAGIOS_LOG_FILE=/var/log/nagios/nagios.log
+SQL_INIT=1
+SQL_BATCH=1000
+NAGIOS_HISTORY_DB=/var/lib/kompot/nagios/nagios-history.db
+USER=nagios
+GROUP=nagios
+[[ -r /etc/sysconfig/nagios-history ]] && source /etc/sysconfig/nagios-history
+install -D -d -o "$USER" -g "$GROUP" -m 0755 /var/lib/kompot/nagios
+exec chpst -u $(id -u "$USER"):$(id -g "$GROUP") sh -c "/opt/kompot/bin/ztail2cmd -f -i '$ZTAIL_INTERVAL' '$NAGIOS_LOG_FILE' -- /opt/kompot/bin/naglog2sql -v 'INIT=$SQL_INIT' -v 'BATCH=$SQL_BATCH' |sqlite3 '$NAGIOS_HISTORY_DB'"
