@@ -37,7 +37,6 @@ ARG KOMPOT_VERSION
 SHELL [ "bash", "-c" ]
 
 #COPY ./kompot-latest.rpm /tmp/build-resources/
-#COPY ./kompot-setup-latest.rpm /tmp/build-resources/
 
 RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
     set -exo pipefail; \
@@ -55,8 +54,8 @@ RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
         :; \
     _dnf() { dnf --setopt install_weak_deps=False -y "$@"; }; \
     [[ $DNF_CLEAN == 1 ]] && dnf clean all; \
-    KOMPOT_SETUP=0 _dnf install kompot{,-setup}${KOMPOT_VERSION:+-$KOMPOT_VERSION}; \
-    #KOMPOT_SETUP=0 _dnf install /tmp/build-resources/kompot{,-setup}-latest.rpm; \
+    KOMPOT_SETUP=0 _dnf install kompot${KOMPOT_VERSION:+-$KOMPOT_VERSION}; \
+    #KOMPOT_SETUP=0 _dnf install /tmp/build-resources/kompot-latest.rpm; \
         :;
 
 FROM base-kompot
