@@ -1,7 +1,7 @@
 ARG DNF_CLEAN=
 ARG KOMPOT_VERSION=
 
-FROM rockylinux/rockylinux:9 as base-os
+FROM rockylinux/rockylinux:9 AS base-os
 SHELL [ "bash", "-c" ]
 
 COPY ./runit/ /tmp/build-resources/runit/
@@ -31,7 +31,7 @@ RUN --mount=id=cache-dnf-el9,target=/var/cache/dnf,type=cache,sharing=locked \
     mv -T /tmp/build-resources/runit /etc/sv; \
         :;
 
-FROM base-os as base-kompot
+FROM base-os AS base-kompot
 ARG DNF_CLEAN
 ARG KOMPOT_VERSION
 SHELL [ "bash", "-c" ]
