@@ -1,7 +1,7 @@
 ARG DNF_CLEAN=
 ARG KOMPOT_VERSION=
 
-FROM rockylinux:9 as base-os
+FROM rockylinux/rockylinux:9 as base-os
 SHELL [ "bash", "-c" ]
 
 COPY ./runit/ /tmp/build-resources/runit/
