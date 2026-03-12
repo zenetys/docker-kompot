@@ -13,4 +13,4 @@ USER=nagios
 GROUP=nagios
 [[ -r /etc/sysconfig/nagios-history ]] && source /etc/sysconfig/nagios-history
 install -D -d -o "$USER" -g "$GROUP" -m 0755 /var/lib/kompot/nagios
-exec chpst -u $(id -u "$USER"):$(id -g "$GROUP") sh -c "/opt/kompot/bin/ztail2cmd -f -i '$ZTAIL_INTERVAL' '$NAGIOS_LOG_FILE' -- /opt/kompot/bin/naglog2sql -v 'INIT=$SQL_INIT' -v 'BATCH=$SQL_BATCH' |sqlite3 '$NAGIOS_HISTORY_DB'"
+exec chpst -u $(id -u "$USER"):$(id -g "$GROUP") sh -c "trap 'kill 0' EXIT; /opt/kompot/bin/ztail2cmd -f -i '$ZTAIL_INTERVAL' '$NAGIOS_LOG_FILE' -- /opt/kompot/bin/naglog2sql -v 'INIT=$SQL_INIT' -v 'BATCH=$SQL_BATCH' |sqlite3 '$NAGIOS_HISTORY_DB'"
